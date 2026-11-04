@@ -5,7 +5,7 @@ import sys
 
 APP_NAME = "Angled"
 APP_ID = "angled"
-VERSION = "0.1.0"
+VERSION = "0.1.1"
 try:  # written by the build scripts
     from .build_info import BUILD, BUILD_DATE  # type: ignore
 except Exception:  # running from source without a build
@@ -41,9 +41,9 @@ DIFFICULTIES = ("easy", "normal", "hard")
 
 # per difficulty tuning
 DIFF = {
-    "easy":   {"speed": 0.70, "tol": 2, "count": 0.85, "cpu_think": 2.4, "cpu_err": 0.30, "cpu_move": 260},
-    "normal": {"speed": 1.00, "tol": 1, "count": 1.00, "cpu_think": 1.5, "cpu_err": 0.13, "cpu_move": 420},
-    "hard":   {"speed": 1.25, "tol": 0, "count": 1.10, "cpu_think": 0.85, "cpu_err": 0.05, "cpu_move": 650},
+    "easy":   {"speed": 0.70, "tol": 5, "count": 0.75, "cpu_think": 2.4, "cpu_err": 0.30, "cpu_move": 260},
+    "normal": {"speed": 1.00, "tol": 3, "count": 1.00, "cpu_think": 1.5, "cpu_err": 0.13, "cpu_move": 420},
+    "hard":   {"speed": 1.25, "tol": 2, "count": 1.10, "cpu_think": 0.85, "cpu_err": 0.05, "cpu_move": 650},
 }
 
 # ---------------------------------------------------------------- colours

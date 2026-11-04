@@ -33,7 +33,7 @@ Type=Application
 Name=Angled
 Name[ja]=アングルド
 GenericName=Angle bubble puzzle
-Comment=Pop each bubble at the angle written inside it! (v${VERSION})
+Comment=Strike each bubble at the spot written inside it! (v${VERSION})
 Comment[ja]=かくどを あわせて ポン！
 Exec=angled
 Icon=angled
@@ -51,7 +51,7 @@ Architecture: amd64
 Installed-Size: ${SIZE}
 Maintainer: Shouku Games <info@shoukugames.org>
 Homepage: https://shoukugames.org/
-Description: Angled v${VERSION} - pop each bubble at the angle written inside it
+Description: Angled v${VERSION} - strike each bubble at the spot written inside it
  A physics bubble-popping game about angles and trick shots by Shouku Games
  (created by Shawn Rapaz and Claude Code). Bank shots off the walls flip the
  angle. 100 levels, 99-second timer, VS CPU battle, top-10 scoreboard,

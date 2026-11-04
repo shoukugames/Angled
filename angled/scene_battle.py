@@ -31,8 +31,11 @@ class BattleScene:
         layout = get_battle(self.diff, round_index)
         self.me = Field(LEFT_X, app.audio, app.fonts, p["speed"], p["tol"], p["labels"])
         self.cpu_f = Field(RIGHT_X, app.audio, app.fonts, p["speed"], p["tol"], p["labels"])
-        self.me.load(layout)
-        self.cpu_f.load(layout)
+        for fld in (self.me, self.cpu_f):
+            fld.label_step = p["step"]
+            fld.max_bounces = p["bounces"]
+            fld.load(layout)
+        self.cpu_f.label_timer = 0.1   # stagger the two fields' label checks
         self.cpu = CPU(self.cpu_f, self.diff)
         self.timer = float(LEVEL_TIME)
         self.last_tick = 99
@@ -44,7 +47,6 @@ class BattleScene:
         self.recorded = False
         self.message = None
         self.paused = False
-        self.mouse_slide = False
         self.fw = None
         self.sent = [0, 0]
 
@@ -77,7 +79,7 @@ class BattleScene:
                 return
             if e.key in (pygame.K_ESCAPE, pygame.K_p):
                 self.paused = not self.paused
-                f.move_dir = f.rot_dir = 0
+                f.rot_dir = 0
                 self.app.audio.sfx("select")
                 return
             if self.paused:
@@ -89,37 +91,23 @@ class BattleScene:
                 return
             if self.state != "play":
                 return
-            if e.key in (pygame.K_UP, pygame.K_w, pygame.K_DOWN, pygame.K_s):
-                d = 1 if e.key in (pygame.K_UP, pygame.K_w) else -1
-                step = 5 if (e.mod & pygame.KMOD_SHIFT) else 1
-                f.nudge_angle(d * step)
-                f.rot_dir, f.rot_step, f.rot_timer = d, step, 0.28
-            elif e.key in (pygame.K_SPACE, pygame.K_RETURN, pygame.K_KP_ENTER):
+            if f.rotate_key_down(e):
+                pass
+            elif e.key in (pygame.K_SPACE, pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_UP, pygame.K_w):
                 f.fire()
         elif e.type == pygame.KEYUP:
-            keys = pygame.key.get_pressed()
-            if not (keys[pygame.K_UP] or keys[pygame.K_w] or keys[pygame.K_DOWN] or keys[pygame.K_s]):
-                f.rot_dir = 0
+            f.rotate_key_up(e)
         elif self.paused:
             return
         elif e.type == pygame.MOUSEMOTION and self.state == "play":
-            if self.mouse_slide:
-                f.launch_x = f.clamp_x(e.pos[0])
-            else:
-                f.aim_at(*e.pos)
+            f.aim_at(*e.pos)
         elif e.type == pygame.MOUSEBUTTONDOWN:
-            if self.state == "play":
-                if e.button == 1:
-                    f.fire()
-                elif e.button == 3:
-                    self.mouse_slide = True
-                    f.launch_x = f.clamp_x(e.pos[0])
+            if self.state == "play" and e.button == 1:
+                f.fire()
             elif self.state == "over" and e.button == 1 and self.state_t > 1.0:
                 self.app.switch(BattleScene(self.app, self.round + 1, self.wins))
-        elif e.type == pygame.MOUSEBUTTONUP and e.button == 3:
-            self.mouse_slide = False
         elif e.type == pygame.MOUSEWHEEL and self.state == "play":
-            f.slide(e.y * 10)
+            f.wheel(e)
 
     def to_title(self):
         from .scenes_menu import TitleScene
@@ -143,9 +131,6 @@ class BattleScene:
                 self.app.audio.sfx("go")
             return
         if self.state == "play":
-            keys = pygame.key.get_pressed()
-            self.me.move_dir = (1 if (keys[pygame.K_RIGHT] or keys[pygame.K_d]) else 0) - \
-                               (1 if (keys[pygame.K_LEFT] or keys[pygame.K_a]) else 0)
             self.timer = max(0.0, self.timer - dt)
             sec = int(math.ceil(self.timer))
             if sec <= 10 and sec != self.last_tick and sec > 0:
@@ -161,7 +146,7 @@ class BattleScene:
             if self.state == "play":
                 self.app.audio.play_music("danger" if danger else "main")
         else:
-            self.me.move_dir = 0
+            self.me.rot_dir = 0
             self.me.update(dt, descend=False)
             self.cpu_f.update(dt, descend=False)
             if self.fw:

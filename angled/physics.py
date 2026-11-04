@@ -4,9 +4,12 @@ Angle convention: degrees, measured counter-clockwise from the +x axis
 (0 = right, 90 = straight up, 180 = left).  Screen y grows downward, so a
 direction of `a` degrees is (cos a, -sin a).
 
-A shot's *arrival angle* is its direction of travel at the moment it touches
-a bubble.  A bubble only pops when the arrival angle matches its label.
-Each wall bounce mirrors the angle (a -> 180 - a): that is the trick shot.
+A bubble's label is its *strike angle*: the spot on the bubble's edge where
+the shot touches it, measured from the bubble's centre like a protractor
+drawn around the bubble (right edge 0, bottom 90, left edge 180).  A shot
+fired at `a` that hits a bubble dead centre strikes it at 180 - a; hitting it
+off-centre or after a wall bounce strikes it elsewhere - that is the trick shot.
+The launcher is fixed at the centre of the floor and fires at whole degrees.
 """
 import math
 
@@ -55,6 +58,7 @@ class Geom:
         self.wall_l = self.x0 + R
         self.wall_r = self.x1 - R
         self.pivot_y = PIVOT_Y
+        self.px = (self.x0 + self.x1) / 2.0   # the launcher is fixed at the centre
 
     def cell_pos(self, row, col, ceil_y):
         x = self.x0 + R + col * 2 * R + (R if row % 2 else 0)
@@ -121,11 +125,12 @@ def step_ray(g, bubbles, ceil_y, x, y, dx, dy, length):
 
 
 class CastResult:
-    __slots__ = ("path", "key", "arrival", "bounces", "end", "event")
+    __slots__ = ("path", "key", "arrival", "bounces", "end", "event", "contact")
 
     def __init__(self):
         self.path = []
         self.key = None
+        self.contact = None
         self.arrival = None
         self.bounces = 0
         self.end = None
@@ -154,83 +159,124 @@ def cast(g, bubbles, ceil_y, x, y, angle_deg, max_bounces=14, max_len=6000.0):
         res.event = ev or "limit"
         if ev == "hit":
             res.key = key
+            for k, cx, cy in bubbles:
+                if k == key:
+                    res.contact = contact_angle(x, y, cx, cy)
+                    break
         break
     res.arrival = arrival_angle(dx, dy)
     res.end = (x, y)
     return res
 
 
-def backtrace(g, x, y, dx, dy, target_y):
-    """Trace from (x,y) along (dx,dy) (moving downward) reflecting off the
-    walls until reaching target_y.  Returns (x, reflections) or None."""
-    if dy <= 1e-9:
-        return None
-    n = 0
-    while n < 60:
-        ty = (target_y - y) / dy
-        if dx < -1e-12:
-            tw = (g.wall_l - x) / dx
-        elif dx > 1e-12:
-            tw = (g.wall_r - x) / dx
-        else:
-            tw = float("inf")
-        if ty <= tw:
-            return x + dx * ty, n
-        x += dx * tw
-        y += dy * tw
-        dx = -dx
-        n += 1
+def contact_angle(sx, sy, cx, cy):
+    """Strike angle: where the shot (centre sx,sy) touches the bubble (centre
+    cx,cy), measured from the bubble's centre.  0 = right edge, 90 = bottom,
+    180 = left edge (shots come from below, so this is the lower half)."""
+    return math.degrees(math.atan2(sy - cy, sx - cx))
+
+
+def _fold(g, x):
+    """Map an x coordinate in unfolded (mirrored-walls) space back into the well."""
+    w = g.wall_r - g.wall_l
+    u = (x - g.wall_l) % (2 * w)
+    return g.wall_l + (u if u <= w else 2 * w - u)
+
+
+def alone_contacts(g, cx, cy, ceil_y, lo=8, hi=172, max_bounces=14):
+    """Every way the fixed launcher can strike a lone bubble at (cx, cy).
+
+    Fast and analytic: wall bounces become straight lines through mirror
+    images of the bubble.  Returns [(launch_angle, strike_angle, bounces)]."""
+    w = g.wall_r - g.wall_l
+    px, py = g.px, g.pivot_y
+    images = []
+    for k in range(-8, 9):   # enough mirror images for max_bounces=14
+        images.append(cx + 2 * k * w)
+        images.append(2 * g.wall_l - cx + 2 * k * w)
+    cand = {}
+    dy = py - cy
+    if dy <= 0:
+        return []
+    for xi in images:
+        dx = xi - px
+        dist = math.hypot(dx, dy)
+        if dist <= HIT_R:
+            continue
+        th = math.degrees(math.atan2(dy, dx))
+        half = math.degrees(math.asin(min(1.0, HIT_R / dist))) + 0.5
+        for a in range(max(lo, int(math.ceil(th - half))), min(hi, int(math.floor(th + half))) + 1):
+            cand.setdefault(a, []).append(xi)   # only these images can be hit at angle a
+    out = []
+    r2 = HIT_R * HIT_R
+    top = ceil_y + R
+    for a in sorted(cand):
+        ux, uy = direction(a)
+        best = None
+        for xi in cand[a]:
+            fx, fy = px - xi, py - cy
+            b = fx * ux + fy * uy
+            if b >= 0:
+                continue
+            c = fx * fx + fy * fy - r2
+            disc = b * b - c
+            if disc < 0:
+                continue
+            t = -b - math.sqrt(disc)
+            if t > 0 and (best is None or t < best):
+                best = t
+        if best is None:
+            continue
+        hx, hy = px + ux * best, py + uy * best
+        if hy < top:          # would reach the ceiling first
+            continue
+        bounces = int(abs(math.floor((hx - g.wall_l) / w)))
+        if bounces > max_bounces:
+            continue
+        out.append((a, contact_angle(_fold(g, hx), hy, cx, cy), bounces))
+    return out
+
+
+def _find(bubbles, key):
+    for k, cx, cy in bubbles:
+        if k == key:
+            return cx, cy
     return None
 
 
-OFFSETS = (0.0, 0.35, -0.35, 0.65, -0.65, 0.85, -0.85)
-
-
-def _works(g, bubbles, ceil_y, key, lx, ang, label):
-    res = cast(g, bubbles, ceil_y, lx, g.pivot_y, ang)
-    return res.key == key and abs(res.arrival - label) < 0.25
-
-
-def solve(g, bubbles, ceil_y, key, cx, cy, label, offsets=OFFSETS, robust=True, strict=False):
-    """Find a launcher x and integer launcher angle so that a shot reaches
-    bubble `key` (centre cx,cy) first, travelling at exactly `label` degrees.
-
-    robust: prefer solutions that still work when the launcher is off by a
-    couple of pixels and the bubbles have moved a little (human margin).
-    strict: only accept robust solutions.
-    Returns (launch_x, launcher_angle, bounces) or None."""
+def label_launch(g, bubbles, ceil_y, key, label, tol, lo=8, hi=172, max_bounces=14):
+    """Launcher angle that strikes bubble `key` within `tol` degrees of
+    `label`, with every other bubble in the way taken into account.
+    Returns the best launch angle or None."""
     bubbles = list(bubbles)
-    tdx, tdy = direction(label)
-    nx, ny = -tdy, tdx
-    fallback = None
-    for s in offsets:
-        qx = cx + nx * s * HIT_R
-        qy = cy + ny * s * HIT_R
-        if not (g.wall_l - 0.01 <= qx <= g.wall_r + 0.01):
-            continue
-        qx = min(max(qx, g.wall_l), g.wall_r)
-        bt = backtrace(g, qx, qy, -tdx, -tdy, g.pivot_y)
-        if bt is None:
-            continue
-        lx, nref = bt
-        ang = label if nref % 2 == 0 else 180 - label
-        if not (8 <= ang <= 172):
-            continue
-        lx = min(max(lx, g.wall_l + 0.5), g.wall_r - 0.5)
-        res = cast(g, bubbles, ceil_y, lx, g.pivot_y, ang)
-        if res.key != key or abs(res.arrival - label) >= 0.25:
-            continue
-        sol = (lx, ang, res.bounces)
-        if not robust:
-            return sol
-        ok = True
-        for dx, dc in ((-2.0, 0.0), (2.0, 0.0), (0.0, -4.0), (0.0, 4.0)):
-            x2 = min(max(lx + dx, g.wall_l + 0.5), g.wall_r - 0.5)
-            if not _works(g, bubbles, ceil_y + dc, key, x2, ang, label):
-                ok = False
-                break
-        if ok:
-            return sol
-        if fallback is None:
-            fallback = sol
-    return None if strict else fallback
+    pos = _find(bubbles, key)
+    if pos is None:
+        return None
+    lim = tol + 0.5
+    opts = [(abs(ca - label), a) for a, ca, _b in alone_contacts(g, pos[0], pos[1], ceil_y, lo, hi, max_bounces)
+            if abs(ca - label) <= lim]
+    opts.sort()
+    if len(bubbles) == 1:
+        return opts[0][1] if opts else None
+    for _err, a in opts:
+        res = cast(g, bubbles, ceil_y, g.px, g.pivot_y, a)
+        if res.key == key and abs(res.contact - label) <= lim:
+            return a
+    return None
+
+
+def lone_ok(g, cx, cy, ceil_y, label, tol, lo=8, hi=172, max_bounces=14):
+    """Could `label` be struck on a lone bubble at (cx, cy)?"""
+    lim = tol + 0.5
+    return any(abs(ca - label) <= lim for _a, ca, _b in alone_contacts(g, cx, cy, ceil_y, lo, hi, max_bounces))
+
+
+def label_choices(contacts, tol, lo_label, hi_label):
+    """Whole-degree labels that the given strike angles can satisfy."""
+    out = set()
+    t = int(math.floor(tol + 0.5))
+    for ca in contacts:
+        for L in range(int(math.ceil(ca - t - 0.5)), int(math.floor(ca + t + 0.5)) + 1):
+            if lo_label <= L <= hi_label and abs(ca - L) <= tol + 0.5:
+                out.add(L)
+    return out

@@ -8,20 +8,26 @@ from . import ui
 from .config import (DEADLINE_Y, FIELD_TOP, FIELD_W, FLOOR_Y, MAX_ANGLE, MIN_ANGLE, PIVOT_Y, R,
                      ROW_H, SHOT_SPEED)
 from .effects import Effects
-from .physics import Geom, arrival_angle, cast, connected_to_ceiling, direction, neighbors, \
-    row_len, step_ray
+from .physics import Geom, alone_contacts, cast, connected_to_ceiling, contact_angle, direction, \
+    label_choices, label_launch, lone_ok, neighbors, row_len, step_ray
 
-MOVE_SPEED = 330.0
 PENALTY_PUSH = 9.0
+LABEL_CHECK = 0.2       # seconds between label validity checks
+LABEL_BATCH = 12        # bubbles checked per tick
+LABEL_ALIVE = (0.0, 3.0, 6.0, 9.0)        # a label is kept while it works within this much descent
+LABEL_FUTURE = (0.0, 3.0, 6.0, 9.0, 12.0, 15.0)  # new labels: prefer ones that keep working longest
+ROT_LEFT = (pygame.K_LEFT, pygame.K_a)
+ROT_RIGHT = (pygame.K_RIGHT, pygame.K_d)
 
 
 class Bubble:
-    __slots__ = ("label", "wobble", "spawn")
+    __slots__ = ("label", "wobble", "spawn", "flash")
 
     def __init__(self, label, spawn=0.0):
         self.label = label
         self.wobble = 0.0
         self.spawn = spawn
+        self.flash = 0.0   # >0 right after the label was changed
 
 
 class Shot:
@@ -44,9 +50,13 @@ class Field:
         self.base_speed = speed
         self.tol = tol
         self.label_pool = label_pool or [45, 60, 75, 90, 105, 120, 135]
+        self.label_step = 1
+        self.max_bounces = 14     # labels are chosen so they need at most this many bounces
+        self.label_timer = 0.0
+        self._label_rr = 0
         self.grid = {}
         self.ceil_y = float(FIELD_TOP)
-        self.launch_x = x0 + FIELD_W / 2.0
+        self.launch_x = self.g.px   # fixed: the launcher never moves
         self.angle = 90
         self.shot = None
         self.reload = 0.0
@@ -57,7 +67,6 @@ class Field:
         self.time = 0.0
         self.shake = 0.0
         # held controls
-        self.move_dir = 0
         self.rot_dir = 0
         self.rot_step = 1
         self.rot_timer = 0.0
@@ -78,8 +87,8 @@ class Field:
         self.incoming.clear()
         self.fx.clear()
         self.dead = False
-        self.launch_x = self.x0 + FIELD_W / 2.0
         self.angle = 90
+        self.label_timer = 0.0
 
     # ------------------------------------------------------------ queries
     def pos(self, cell):
@@ -105,9 +114,6 @@ class Field:
         return self.shot is not None
 
     # ------------------------------------------------------------ controls
-    def clamp_x(self, x):
-        return min(max(x, self.g.wall_l + 0.5), self.g.wall_r - 0.5)
-
     def set_angle(self, a):
         self.angle = int(max(MIN_ANGLE, min(MAX_ANGLE, round(a))))
 
@@ -120,8 +126,123 @@ class Field:
         a = math.degrees(math.atan2(PIVOT_Y - my, mx - self.launch_x))
         self.set_angle(a)
 
-    def slide(self, dx):
-        self.launch_x = self.clamp_x(self.launch_x + dx)
+    def rotate_key_down(self, e):
+        """Left/Right (A/D) turn the arrow.  Returns True if the key was used."""
+        if e.key in ROT_LEFT or e.key in ROT_RIGHT:
+            d = 1 if e.key in ROT_LEFT else -1   # left = counter-clockwise
+            step = 5 if (e.mod & pygame.KMOD_SHIFT) else 1
+            self.nudge_angle(d * step)
+            self.rot_dir, self.rot_step, self.rot_timer = d, step, 0.28
+            self.rot_held = 0.0
+            return True
+        return False
+
+    def rotate_key_up(self, e):
+        if e.key in ROT_LEFT or e.key in ROT_RIGHT:
+            keys = pygame.key.get_pressed()
+            left = any(keys[k] for k in ROT_LEFT)
+            right = any(keys[k] for k in ROT_RIGHT)
+            self.rot_dir = 1 if left and not right else -1 if right and not left else 0
+
+    def wheel(self, e):
+        d = -e.y if getattr(e, "flipped", False) else e.y
+        self.nudge_angle(1 if d > 0 else -1)
+
+    # ------------------------------------------------------------ labels
+    def launch_for(self, key, bubbles=None):
+        """Launcher angle that pops bubble `key` right now, or None."""
+        b = self.grid.get(key)
+        if b is None:
+            return None
+        if bubbles is None:
+            bubbles = self.bubble_list()
+        return label_launch(self.g, bubbles, self.ceil_y, key, b.label, self.tol, MIN_ANGLE, MAX_ANGLE)  # any bounces
+
+    def _strikes(self, key, dy=0.0, cap=None):
+        """Strike angles the launcher can put on a lone bubble `key` after `dy` px
+        of descent, using at most `cap` wall bounces (default: the level's limit)."""
+        cy = self.ceil_y + dy
+        x, y = self.g.cell_pos(key[0], key[1], cy)
+        nb = self.max_bounces if cap is None else cap
+        return [ca for _a, ca, _b in alone_contacts(self.g, x, y, cy, MIN_ANGLE, MAX_ANGLE, nb)]
+
+    def alive(self, key, label):
+        """Can `label` be struck on `key` now or within the next few pixels of
+        descent (ignoring bubbles in the way)?  Any number of bounces counts:
+        the bounce limit only steers which new labels get picked."""
+        lim = self.tol + 0.5
+        for dy in LABEL_ALIVE:
+            if any(abs(ca - label) <= lim for ca in self._strikes(key, dy, cap=14)):
+                return True
+        return False
+
+    def _choose(self, key, choices, old):
+        """Best new label among `choices`: one that keeps working longest, inside
+        the level's angle range, on its angle steps, round, close to the old one."""
+        lim = self.tol + 0.5
+        future = [self._strikes(key, dy) for dy in LABEL_FUTURE]
+        lo, hi = min(self.label_pool), max(self.label_pool)
+        step = self.label_step
+
+        def score(L):
+            lasts = sum(1 for st in future if any(abs(ca - L) <= lim for ca in st))
+            return (-lasts, not lo <= L <= hi, L % step != 0, L % 5 != 0, abs(L - old))
+
+        return min(choices, key=score)
+
+    def refresh_labels(self):
+        """The launcher is fixed and the ceiling keeps pushing the bubbles down,
+        so the spot a shot can strike on a bubble keeps moving.  A label is kept
+        as long as it can be struck now or soon; only when it has drifted out of
+        reach does the bubble get the closest strike angle that works again.
+        Bubbles that are merely hidden behind others keep their label - clearing
+        the way in front of them is the puzzle."""
+        if self.shot is not None or self.dead or not self.grid:
+            return 0
+        changed = 0
+        keys = sorted(self.grid)
+        # spread the work over several ticks: check a rotating slice of bubbles
+        n = len(keys)
+        start = self._label_rr % n
+        batch = [keys[(start + i) % n] for i in range(min(n, LABEL_BATCH))]
+        self._label_rr = (start + LABEL_BATCH) % max(1, n)
+        for c in batch:
+            b = self.grid[c]
+            if self.alive(c, b.label):
+                continue
+            ch = label_choices(self._strikes(c), self.tol, MIN_ANGLE, MAX_ANGLE) or \
+                label_choices(self._strikes(c, cap=14), self.tol, MIN_ANGLE, MAX_ANGLE)
+            if not ch:
+                continue
+            b.label = self._choose(c, ch, b.label)
+            b.flash = 0.6
+            changed += 1
+        bub = self.bubble_list()
+        lowest_first = sorted(self.grid, key=lambda k: -k[0])
+        if not any(self.launch_for(c, bub) is not None for c in lowest_first):
+            changed += self._unblock(bub)
+        return changed
+
+    def _unblock(self, bub):
+        """No bubble can be popped right now (every label is blocked or out of
+        reach this instant): give the lowest bubble that has a clear shot a label
+        it can be struck at, so the player is never stuck."""
+        order = sorted(self.grid, key=lambda k: (-k[0], abs(self.pos(k)[0] - self.g.px)))
+        for cap in (self.max_bounces, 14):
+            for c in order:
+                x, y = self.pos(c)
+                strikes = []
+                for a, _ca, _b in alone_contacts(self.g, x, y, self.ceil_y, MIN_ANGLE, MAX_ANGLE, cap):
+                    res = cast(self.g, bub, self.ceil_y, self.g.px, self.g.pivot_y, a)
+                    if res.key == c:
+                        strikes.append(res.contact)
+                ch = label_choices(strikes, self.tol, MIN_ANGLE, MAX_ANGLE)
+                if ch:
+                    b = self.grid[c]
+                    b.label = self._choose(c, ch, b.label)
+                    b.flash = 0.6
+                    return 1
+        return 0
 
     def fire(self):
         if self.shot is not None or self.reload > 0 or self.dead:
@@ -141,8 +262,6 @@ class Field:
         if self.reload > 0:
             self.reload -= dt
         # held controls
-        if self.move_dir:
-            self.slide(self.move_dir * MOVE_SPEED * dt)
         if self.rot_dir:
             self.rot_timer -= dt
             self.rot_held += dt
@@ -157,6 +276,12 @@ class Field:
                 b.wobble = max(0.0, b.wobble - dt)
             if b.spawn > 0:
                 b.spawn = max(0.0, b.spawn - dt)
+            if b.flash > 0:
+                b.flash = max(0.0, b.flash - dt)
+        self.label_timer -= dt
+        if self.label_timer <= 0 and self.shot is None:
+            self.label_timer = LABEL_CHECK
+            self.refresh_labels()
         # descent: faster and faster as the bubbles approach the floor
         p = self.progress()
         self.danger = p
@@ -218,12 +343,13 @@ class Field:
         s = self.shot
         self.shot = None
         self.reload = 0.12
-        arr = arrival_angle(s.dx, s.dy)
+        self.label_timer = 0.0
         b = self.grid.get(key)
         if b is None:
             return
         bx, by = self.pos(key)
-        if abs(arr - b.label) <= self.tol + 0.05:
+        arr = contact_angle(s.x, s.y, bx, by)   # where on the bubble's edge the shot struck
+        if abs(arr - b.label) <= self.tol + 0.5:
             # POP!
             del self.grid[key]
             self.pops += 1
@@ -335,6 +461,10 @@ class Field:
                 x += math.sin(b.wobble * 60) * 4
             sc = 1.0 - b.spawn * 2.4 if b.spawn else 1.0
             ui.draw_bubble(surf, b.label, x + ox, y, self.fonts, max(0.2, sc))
+            if b.flash:
+                k = b.flash / 0.6
+                pygame.draw.circle(surf, (255, 255, 255), (int(x + ox), int(y)),
+                                   int(R + 2 + 8 * (1 - k)), max(1, int(4 * k)))
         for f in self.falling:
             ui.draw_bubble(surf, f[4], f[0] + ox, f[1], self.fonts)
         for gb in self.incoming:
@@ -370,14 +500,21 @@ class Field:
             return
         ok = False
         if res.event == "hit" and res.key in self.grid:
-            ok = abs(res.arrival - self.grid[res.key].label) <= self.tol + 0.05
+            ok = abs(res.contact - self.grid[res.key].label) <= self.tol + 0.5
         col = (120, 255, 150) if ok else (255, 240, 160) if res.event != "hit" else (255, 120, 120)
         ui.dashed_polyline(surf, res.path, col, 10, 7, 3)
         ex, ey = res.end
         if res.event == "hit":
             pygame.draw.circle(surf, col, (int(ex), int(ey)), R, 2)
-            tag = "%d°" % round(res.arrival)
+            tag = "%d°" % round(res.contact)
             self.fonts.draw(surf, tag, 18, (ex, ey + R + 12), col, "center", outline=(0, 0, 0))
-            if ok:
+            if res.key in self.grid:
+                # mark the strike spot on the bubble's edge
                 bx, by = self.pos(res.key)
-                pygame.draw.circle(surf, (120, 255, 150), (int(bx), int(by)), R + 4, 3)
+                t = math.radians(res.contact)
+                sx, sy = bx + math.cos(t) * R, by + math.sin(t) * R
+                pygame.draw.line(surf, col, (int(bx), int(by)), (int(sx), int(sy)), 2)
+                pygame.draw.circle(surf, (255, 255, 255), (int(sx), int(sy)), 5)
+                pygame.draw.circle(surf, col, (int(sx), int(sy)), 5, 2)
+                if ok:
+                    pygame.draw.circle(surf, (120, 255, 150), (int(bx), int(by)), R + 4, 3)

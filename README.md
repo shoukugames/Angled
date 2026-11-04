@@ -1,17 +1,17 @@
-# Angled — v0.1.0
+# Angled — v0.1.1
 
-**Pop each bubble at the angle written inside it!** / **かくどを あわせて ポン！**
+**Strike each bubble at the spot written inside it!** / **かくどを あわせて ポン！**
 
 Angled is a physics bubble-popping game about angles and trick shots, inspired by
-classic bubble shooters. Every bubble shows an angle like `60°`. Your shot has to
-be travelling at that exact angle when it touches the bubble, or the bubble won't pop.
-Bounce off the walls for trick shots: a bank shot mirrors the angle, so a shot
-fired at 60° arrives at 120° after one bounce.
+classic bubble shooters. Every bubble shows an angle like `60°`: that's **the spot on the
+bubble's edge where your shot has to touch it**. Read it like a protractor drawn around the bubble:
+right edge 0°, bottom 90°, left edge 180°. Hit the bubble off-centre, or bank off a wall, to
+touch the right spot.
 
 | | |
 |---|---|
-| **Version** | v0.1.0 |
-| **Build** | `20261104.fe2da27` (shown in the Credits screen and the window title) |
+| **Version** | v0.1.1 |
+| **Build** | `20261104.<commit>` (exact id shown in the Credits screen) |
 | **Build date** | 2026-11-04 |
 | **Created by** | Shawn Rapaz and Claude Code |
 | **Studio** | Shouku Games — <https://shoukugames.org/> — info@shoukugames.org |
@@ -23,31 +23,48 @@ fired at 60° arrives at 120° after one bounce.
 
 | Platform | File | How to run |
 |---|---|---|
-| Windows 10/11 (64-bit) | `dist/Angled-v0.1.0-win64.exe` | Double-click it. It's a single portable file with no installer. Windows SmartScreen may warn about an unsigned app: choose *More info → Run anyway*. |
-| Debian / Ubuntu / Mint (amd64) | `dist/angled_0.1.0_amd64.deb` | `sudo apt install ./angled_0.1.0_amd64.deb`, then start **Angled** from the menu, or run `angled`. Remove with `sudo apt remove angled`. |
+| Windows 10/11 (64-bit) | `dist/Angled-v0.1.1-win64.exe` | Double-click it. It's a single portable file with no installer. Windows SmartScreen may warn about an unsigned app: choose *More info → Run anyway*. |
+| Debian / Ubuntu / Mint (amd64) | `dist/angled_0.1.1_amd64.deb` | `sudo apt install ./angled_0.1.1_amd64.deb`, then start **Angled** from the menu, or run `angled`. Remove with `sudo apt remove angled`. |
 | From source (any OS) | this folder | `pip install pygame` then `python3 run.py` |
 
 ---
 
 ## How to play
 
-1. Read the angle inside a bubble, for example **75°**.
-2. Turn the launcher to that angle. The big number next to the arrow shows your current angle.
-3. Slide the launcher left/right until the shot lines up with the bubble, then fire.
-4. If the direction of travel matches the bubble's number when it touches → **POP!**
+1. Read the number inside a bubble, for example **60°**. It's a spot on the bubble's
+   edge: **0° = right edge, 90° = bottom, 180° = left edge** (60° is the lower right).
+2. The launcher stays in the middle of the floor. Turn the arrow with **← →** so that the
+   shot will touch the bubble on that spot.
+3. Fire! If the shot touches the right spot → **POP!**
    If not → *clank!*: the bubble stays and the ceiling drops a little as a penalty.
 
-**Trick shots:** angles are measured like a protractor (0° = right, 90° = straight up,
-180° = left). Each wall bounce flips the angle: `angle → 180° − angle`. Steep
-bubbles high up often need a bank shot.
+```
+        .-""-.
+       /      \
+ 180° |  60°   | 0°        a shot coming in from the lower right
+       \      /           touches the 60° spot
+        '-..-' o
+          90°    \
+```
+
+**Trick shots:** the launcher's own angle is measured the same way (0° = right, 90° = straight up,
+180° = left). A shot that hits a bubble dead centre touches it at `180° − launcher angle`, so firing
+at 90° touches the bottom (90°). To touch a spot on the far side you aim past the centre or bank
+off a wall. Each bounce mirrors the shot's direction.
+
+**Moving bubbles:** the ceiling pushes the bubbles down, so the spot your shot touches keeps moving,
+and you may need to adjust the arrow by a degree as they descend. Every number can always be struck from
+the launcher (once the bubbles in front of it are gone). If a bubble drifts so far that its
+number can't be struck any more, its number changes to the closest spot that can, and the bubble
+flashes with a white ring.
 
 **Pressure:** the ceiling keeps pushing the bubbles down, and it gets **faster and
 faster** the closer they get to the floor (the music switches to a panic theme too).
 If a bubble crosses the red line by the launcher, it's game over. Each level also has a
 **99-second countdown**. Left-over seconds become a time bonus.
 
-**Guide line:** on levels 1–10 a dotted line predicts where the shot will go and
-what angle it will arrive at (green = it will pop). From level 11 on, you're on your own.
+**Guide line:** on levels 1–10 a dotted line predicts where the shot will go, marks the spot
+it will touch on the bubble and shows its angle (green = it will pop). From level 11 on, you're on your own.
 
 **Drops:** bubbles that are no longer connected to the ceiling fall off for bonus points.
 
@@ -55,10 +72,10 @@ what angle it will arrive at (green = it will pop). From level 11 on, you're on 
 
 | Action | Keyboard | Mouse |
 |---|---|---|
-| Slide launcher | ← → or A D | mouse wheel, or hold right button and drag |
-| Change angle | ↑ ↓ or W S (hold to speed up) | point the mouse where you want to aim |
-| Change angle by 5° | Shift + ↑ ↓ | — |
-| Shoot | Space or Enter | left click |
+| Turn the arrow | ← → or A D (hold to turn faster) | point the mouse where you want to aim |
+| Turn by 1° | tap ← → | mouse wheel |
+| Turn by 5° | Shift + ← → | — |
+| Shoot | Space, Enter or ↑ / W | left click |
 | Pause | Esc or P | — |
 | Fullscreen | F11 | — |
 
@@ -71,7 +88,7 @@ what angle it will arrive at (green = it will pop). From level 11 on, you're on 
 | Dropped bubble | 150 × combo each |
 | Level clear | seconds left × 50 + level × 100 |
 
-A wrong angle or a shot that hits the ceiling resets the combo.
+Striking the wrong spot, or a shot that hits the ceiling, resets the combo.
 
 ---
 
@@ -97,18 +114,22 @@ There are 100 levels. Each level gets progressively harder in several ways:
 * **More bubbles and more rows** (2 rows at level 1, up to 6).
 * **Faster descent** (the base speed rises every level, on top of the speed-up near the floor).
 * **Finer angles:** labels start in steps of 15° (60°, 75°, 90°…), then 10°, 5°, 2° and finally any whole degree.
-* **Wider angle range:** shallow angles (like 20° or 160°) need bank shots and appear later.
+* **Wider angle range:** spots near the sides of a bubble (like 20° or 160°) appear later.
+* **More trick shots:** the number of wall bounces a label may need grows with the level.
 * **No guide line** after level 10.
 
-| Difficulty | Descent speed | Angle tolerance | Bubbles | Angle steps |
-|---|---|---|---|---|
-| Easy | 70% | ±2° | 85% | 15° → 10° → 5° |
-| Normal | 100% | ±1° | 100% | 15° → 10° → 5° → 2° → 1° |
-| Hard | 125% | exact | 110% | 10° → 5° → 2° → 1° |
+| Difficulty | Descent speed | Spot tolerance | Bubbles | Angle steps | Wall bounces needed |
+|---|---|---|---|---|---|
+| Easy | 70% | ±5° | 75% | 15° → 10° → 5° | up to 1 → 2 → 3 |
+| Normal | 100% | ±3° | 100% | 15° → 10° → 5° → 2° → 1° | up to 1 → 2 → 3 → 4 |
+| Hard | 125% | ±2° | 110% | 10° → 5° → 2° → 1° | up to 2 → 3 → 5 |
 
-Every level is generated from a fixed seed and **proven solvable** by the build tools
-using the game's own physics. The proof requires solutions that still work if you're
-a couple of pixels off, and it holds whatever order you pop the bubbles in.
+Every level is generated from a fixed seed and **proven solvable** from the centre launcher
+by the build tools, using the game's own physics. Every label can be struck on its bubble from the start
+(launcher angles are whole degrees), and the proof holds whatever order you pop the bubbles in.
+While you play, the game keeps every number strikeable as the ceiling descends (see *How to play*).
+If no bubble can be popped at that moment, it gives the lowest bubble with a clear shot a strikeable
+number, so you're never stuck.
 
 Clearing **level 99** triggers a big **CONGRATULATIONS** fireworks show with a fanfare,
 then the **final level 100**. Clearing level 100 shows the all-clear fireworks ending.
@@ -157,8 +178,8 @@ python3 run.py                    # play from source
 python3 tools/gen_audio.py        # regenerate music + synthesized sound effects
 python3 tools/gen_icon.py         # regenerate assets/icon.png / icon.ico
 python3 tools/gen_levels.py       # regenerate + re-prove all levels (assets/levels.json)
-./build_linux.sh                  # -> dist/angled_0.1.0_amd64.deb
-./build_windows.sh                # -> dist/Angled-v0.1.0-win64.exe (via Wine)
+./build_linux.sh                  # -> dist/angled_0.1.1_amd64.deb
+./build_windows.sh                # -> dist/Angled-v0.1.1-win64.exe (via Wine)
 ```
 
 `build_windows.bat` builds the .exe natively on Windows.
@@ -181,7 +202,7 @@ and date, and embeds the version in the Windows file properties.
 angled/          game package
   main.py        window, main loop, crash log
   config.py      constants, version, paths
-  physics.py     hex grid, ray casting with wall bounces, shot solver
+  physics.py     hex grid, ray casting with wall bounces, strike angles
   levels.py      level parameters + solvable level generator
   field.py       one playfield (grid, descent, launcher, shots, garbage)
   scene_game.py  single player (levels, timer, celebration)
@@ -198,7 +219,7 @@ tools/           asset generators and build helpers
 
 * **Created by:** Shawn Rapaz and Claude Code
 * **Studio:** Shouku Games — <https://shoukugames.org/> — info@shoukugames.org
-* **Version:** v0.1.0 (build 20261104.fe2da27, 2026-11-04)
+* **Version:** v0.1.1 (2026-11-04)
 * **Pop sounds:** real bubble-wrap pops recorded by Joseph Sardin, [BigSoundBank](https://bigsoundbank.com/) #0462, CC0
 * **Music & other sound effects:** synthesized for this game (`tools/gen_audio.py`)
 * **Fonts:** DejaVu Sans Bold (Bitstream Vera / DejaVu license), Droid Sans Fallback (Apache 2.0)

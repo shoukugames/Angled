@@ -39,7 +39,6 @@ class GameScene:
         self.bonus = (0, 0)
         self.fw = None
         self.recorded = False
-        self.mouse_slide = False
         self.load_level()
 
     # ------------------------------------------------------------ level flow
@@ -48,6 +47,8 @@ class GameScene:
         self.field.base_speed = p["speed"]
         self.field.tol = p["tol"]
         self.field.label_pool = p["labels"]
+        self.field.label_step = p["step"]
+        self.field.max_bounces = p["bounces"]
         self.field.load(get_level(self.level, self.diff))
         self.timer = float(LEVEL_TIME)
         self.last_tick = 99
@@ -102,7 +103,7 @@ class GameScene:
                     self.prev_state = self.state
                     self.state = "paused"
                     self.pause_index = 0
-                    f.move_dir = f.rot_dir = 0
+                    f.rot_dir = 0
                     self.app.audio.sfx("select")
                 return
             if self.state in ("celebrate", "ending", "over"):
@@ -111,36 +112,21 @@ class GameScene:
                 return
             if self.state != "play":
                 return
-            if e.key in (pygame.K_UP, pygame.K_w, pygame.K_DOWN, pygame.K_s):
-                d = 1 if e.key in (pygame.K_UP, pygame.K_w) else -1
-                step = 5 if (e.mod & pygame.KMOD_SHIFT) else 1
-                f.nudge_angle(d * step)
-                f.rot_dir, f.rot_step, f.rot_timer = d, step, 0.28
-            elif e.key in (pygame.K_SPACE, pygame.K_RETURN, pygame.K_KP_ENTER):
+            if f.rotate_key_down(e):
+                pass
+            elif e.key in (pygame.K_SPACE, pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_UP, pygame.K_w):
                 f.fire()
         elif e.type == pygame.KEYUP:
-            if e.key in (pygame.K_UP, pygame.K_w, pygame.K_DOWN, pygame.K_s):
-                keys = pygame.key.get_pressed()
-                if not (keys[pygame.K_UP] or keys[pygame.K_w] or keys[pygame.K_DOWN] or keys[pygame.K_s]):
-                    f.rot_dir = 0
+            f.rotate_key_up(e)
         elif e.type == pygame.MOUSEMOTION and self.state == "play":
-            if self.mouse_slide:
-                f.launch_x = f.clamp_x(e.pos[0])
-            else:
-                f.aim_at(*e.pos)
+            f.aim_at(*e.pos)
         elif e.type == pygame.MOUSEBUTTONDOWN:
             if self.state in ("celebrate", "ending", "over") and e.button == 1 and self.state_t > 2.0:
                 self.advance_from_overlay()
-            elif self.state == "play":
-                if e.button == 1:
-                    f.fire()
-                elif e.button == 3:
-                    self.mouse_slide = True
-                    f.launch_x = f.clamp_x(e.pos[0])
-        elif e.type == pygame.MOUSEBUTTONUP and e.button == 3:
-            self.mouse_slide = False
+            elif self.state == "play" and e.button == 1:
+                f.fire()
         elif e.type == pygame.MOUSEWHEEL and self.state == "play":
-            f.slide(-e.y * 10 if e.flipped else e.y * 10)
+            f.wheel(e)
 
     def handle_pause(self, e):
         if e.type == pygame.KEYDOWN:
@@ -188,12 +174,7 @@ class GameScene:
         f = self.field
         if self.state in ("ready", "play", "clear"):
             self.play_time += dt
-        if self.state == "play":
-            keys = pygame.key.get_pressed()
-            f.move_dir = (1 if (keys[pygame.K_RIGHT] or keys[pygame.K_d]) else 0) - \
-                         (1 if (keys[pygame.K_LEFT] or keys[pygame.K_a]) else 0)
-        else:
-            f.move_dir = 0
+        if self.state != "play":
             f.rot_dir = 0
 
         if self.state == "ready":
@@ -413,13 +394,22 @@ class GameScene:
         for k in ("rule_3", "rule_4"):
             fo.draw(surf, T(k), 15, (cx, y), (190, 200, 240), "center")
             y += 21
-        # tiny bank-shot diagram
-        bx, by = cx, 650
-        pygame.draw.line(surf, (110, 130, 210), (bx + 60, by - 46), (bx + 60, by + 10), 3)
-        pygame.draw.line(surf, CYAN, (bx - 40, by), (bx + 60, by - 26), 2)
-        pygame.draw.line(surf, ORANGE, (bx + 60, by - 26), (bx - 20, by - 46), 2)
-        fo.draw(surf, "60°", 13, (bx - 40, by - 12), CYAN, "center")
-        fo.draw(surf, "120°", 13, (bx - 28, by - 54), ORANGE, "center")
+        # tiny diagram: a bubble with its protractor and a shot striking it at 60 deg
+        bx, by, br = cx, 612, 22
+        ui.draw_bubble(surf, 60, bx, by, fo)
+        for deg in range(0, 181, 15):
+            t = math.radians(deg)
+            r1 = br + (7 if deg % 45 == 0 else 4)
+            pygame.draw.line(surf, (150, 165, 230), (bx + math.cos(t) * (br + 1), by + math.sin(t) * (br + 1)),
+                             (bx + math.cos(t) * r1, by + math.sin(t) * r1), 2)
+        fo.draw(surf, "0°", 12, (bx + br + 16, by), (190, 200, 240), "center")
+        fo.draw(surf, "90°", 12, (bx, by + br + 16), (190, 200, 240), "center")
+        fo.draw(surf, "180°", 12, (bx - br - 20, by), (190, 200, 240), "center")
+        t = math.radians(60)
+        sx, sy = bx + math.cos(t) * (br + 9), by + math.sin(t) * (br + 9)
+        pygame.draw.line(surf, ORANGE, (sx + 40, sy + 34), (sx, sy), 2)
+        pygame.draw.circle(surf, (255, 255, 255), (int(sx), int(sy)), 6)
+        pygame.draw.circle(surf, ORANGE, (int(sx), int(sy)), 6, 2)
 
     def draw_right(self, surf, fo):
         x = FIELD_X + FIELD_W + 32

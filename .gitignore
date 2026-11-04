@@ -4,3 +4,4 @@ __pycache__/
 *.pyc
 angled/build_info.py
 *.spec
+packaging/version_info.txt

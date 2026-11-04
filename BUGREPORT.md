@@ -1,6 +1,6 @@
 # Angled — Bug Reports
 
-**Version:** v0.1.0 · **Build:** 20261104.fe2da27 · **Date:** 2026-11-04
+**Version:** v0.1.1 · **Date:** 2026-11-04 (the exact build id is in the Credits screen)
 **Studio:** Shouku Games — <https://shoukugames.org/>
 
 Thanks for helping make Angled better! Please send bug reports to
@@ -21,7 +21,7 @@ Thanks for helping make Angled better! Please send bug reports to
 Copy this into your email:
 
 ```
-Version / build:      v0.1.0 / 20261104.xxxxxxx
+Version / build:      v0.1.1 / 20261104.xxxxxxx
 Operating system:     (e.g. Windows 11 64-bit, Ubuntu 24.04)
 Installed from:       (Windows .exe / .deb package / source)
 Language:             (English / 日本語)
@@ -53,18 +53,19 @@ angled.log attached:  (yes/no)
 | **Minor** | Visual glitch, text overflow, translation mistake |
 | **Suggestion** | Balance, ideas, new features |
 
-## Known issues (v0.1.0)
+## Known issues (v0.1.1)
 
 | # | Issue | Workaround |
 |---|---|---|
 | 1 | Windows SmartScreen / antivirus may warn about the unsigned `.exe` (common for PyInstaller-built games). | *More info → Run anyway*, or build from source. |
 | 2 | The one-file Windows `.exe` takes a few seconds to start the first time while it unpacks itself. | Wait a moment. Later starts are faster. |
-| 3 | In battle, garbage bubbles sent by the opponent get random angles, so occasionally one can only be popped after its neighbours are cleared. | Clear the bubbles around it first. |
-| 4 | Japanese name entry depends on the operating system's IME. With some Linux IMEs the composition text appears only after you press Enter. | Type in romaji or switch IME. |
-| 5 | Late levels on Hard (≈ 70+) are tuned for expert players and may take several attempts. | Try Normal or Easy. Continue restarts from the furthest level reached. |
+| 3 | Japanese name entry depends on the operating system's IME. With some Linux IMEs the composition text appears only after you press Enter. | Type in romaji or switch IME. |
+| 4 | Late levels on Hard (≈ 70+) are tuned for expert players and may take several attempts. | Try Normal or Easy. Continue restarts from the furthest level reached. |
 
 ## Fixed bugs log
 
 | Version | Fix |
 |---|---|
 | v0.1.0 | First release. |
+| v0.1.1 | Game could freeze (stop responding) while the guide line was shown, caused by a floating-point infinite loop when drawing the dashed line. |
+| v0.1.1 | The launcher is now fixed in the centre and ← → turn the arrow. Labels re-adjust when descent moves a bubble so its number can't be struck any more, so garbage bubbles in battle no longer get unreachable angles. |

@@ -139,19 +139,25 @@ def dashed_polyline(surf, pts, color, dash=10, gap=7, width=3):
             continue
         ux, uy = (x1 - x0) / seg, (y1 - y0) / seg
         pos = 0.0
-        while pos < seg:
-            length = (dash if on else gap) - carry
-            end = min(seg, pos + length)
-            if on:
-                pygame.draw.line(surf, color, (x0 + ux * pos, y0 + uy * pos),
-                                 (x0 + ux * end, y0 + uy * end), width)
-            used = end - pos
-            if used < length:
-                carry += used
-            else:
+        # Every pass either flips dash/gap or advances by more than EPS, so the
+        # loop always terminates (float rounding once made it spin forever).
+        EPS = 1e-6
+        while seg - pos > EPS:
+            target = dash if on else gap
+            remaining = target - carry
+            if remaining <= EPS:
                 carry = 0.0
                 on = not on
-            pos = end
+                continue
+            step = min(remaining, seg - pos)
+            if on:
+                pygame.draw.line(surf, color, (x0 + ux * pos, y0 + uy * pos),
+                                 (x0 + ux * (pos + step), y0 + uy * (pos + step)), width)
+            pos += step
+            carry += step
+            if carry >= target - EPS:
+                carry = 0.0
+                on = not on
 
 
 class Menu:
