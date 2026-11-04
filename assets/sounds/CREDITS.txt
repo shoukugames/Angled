@@ -1,0 +1,6 @@
+pop1.wav .. pop6.wav
+  Real bubble-wrap pops, cut from "Bubble wrap: Breakouts" (#0462) by Joseph Sardin,
+  BigSoundBank - https://bigsoundbank.com/ - licensed CC0 (public domain dedication).
+
+All other sounds and the music in assets/music were synthesized for Angled by
+tools/gen_audio.py.
