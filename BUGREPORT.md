@@ -1,6 +1,6 @@
 # Angled — Bug Reports
 
-**Version:** v0.1.1 · **Date:** 2026-11-04 (the exact build id is in the Credits screen)
+**Version:** v0.1.2 · **Date:** 2026-11-04 (the exact build id is in the Credits screen)
 **Studio:** Shouku Games — <https://shoukugames.org/>
 
 Thanks for helping make Angled better! Please send bug reports to
@@ -21,7 +21,7 @@ Thanks for helping make Angled better! Please send bug reports to
 Copy this into your email:
 
 ```
-Version / build:      v0.1.1 / 20261104.xxxxxxx
+Version / build:      v0.1.2 / 20261104.xxxxxxx
 Operating system:     (e.g. Windows 11 64-bit, Ubuntu 24.04)
 Installed from:       (Windows .exe / .deb package / source)
 Language:             (English / 日本語)
@@ -53,7 +53,7 @@ angled.log attached:  (yes/no)
 | **Minor** | Visual glitch, text overflow, translation mistake |
 | **Suggestion** | Balance, ideas, new features |
 
-## Known issues (v0.1.1)
+## Known issues (v0.1.2)
 
 | # | Issue | Workaround |
 |---|---|---|
@@ -69,3 +69,4 @@ angled.log attached:  (yes/no)
 | v0.1.0 | First release. |
 | v0.1.1 | Game could freeze (stop responding) while the guide line was shown, caused by a floating-point infinite loop when drawing the dashed line. |
 | v0.1.1 | The launcher is now fixed in the centre and ← → turn the arrow. Labels re-adjust when descent moves a bubble so its number can't be struck any more, so garbage bubbles in battle no longer get unreachable angles. |
+| v0.1.2 | ↑ / W and Enter no longer fire during play; Space is the only fire key. |

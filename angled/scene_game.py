@@ -114,7 +114,7 @@ class GameScene:
                 return
             if f.rotate_key_down(e):
                 pass
-            elif e.key in (pygame.K_SPACE, pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_UP, pygame.K_w):
+            elif e.key == pygame.K_SPACE:   # Space is the only fire key
                 f.fire()
         elif e.type == pygame.KEYUP:
             f.rotate_key_up(e)

@@ -38,7 +38,7 @@ STRINGS = {
     "guide_off": ("No guide line - trust your angles!", "ガイドなし！ かくどを よもう！"),
     "ctl_title": ("CONTROLS", "そうさ"),
     "ctl_1": ("← → / A D : turn the arrow", "← → / A D ： やじるしを まわす"),
-    "ctl_2": ("SPACE / ↑ / click : shoot", "スペース / ↑ / クリック ： うつ"),
+    "ctl_2": ("SPACE / click : shoot", "スペース / クリック ： うつ"),
     "ctl_3": ("SHIFT + ← → : 5° steps", "SHIFT + ← → ： 5°ずつ"),
     "ctl_4": ("Hold ← → to turn faster", "← → ながおしで はやく まわる"),
     "ctl_5": ("Mouse aims, wheel = 1°", "マウスで ねらう・ホイールで 1°"),

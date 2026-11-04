@@ -5,7 +5,7 @@ import sys
 
 APP_NAME = "Angled"
 APP_ID = "angled"
-VERSION = "0.1.1"
+VERSION = "0.1.2"
 try:  # written by the build scripts
     from .build_info import BUILD, BUILD_DATE  # type: ignore
 except Exception:  # running from source without a build

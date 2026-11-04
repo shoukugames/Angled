@@ -1,9 +1,14 @@
 # Changelog
 
+## v0.1.2 — 2026-11-04
+
+* Space is now the only fire key during play. ↑ / W and Enter no longer shoot (left click still does).
+  The in-game control hints and README are updated.
+
 ## v0.1.1 — 2026-11-04
 
 * **Fixed launcher:** the launcher stays in the centre of the floor. ← → / A D turn the arrow
-  (hold to turn faster, Shift for 5° steps, mouse wheel for 1°). Space, Enter or ↑ / W fires.
+  (hold to turn faster, Shift for 5° steps, mouse wheel for 1°).
 * **Strike-angle rule:** a bubble's number is now the spot on its edge the shot must touch
   (0° right edge, 90° bottom, 180° left edge), within ±5° on Easy, ±3° on Normal and ±2° on Hard.
   Off-centre hits and wall bank shots reach every spot.
