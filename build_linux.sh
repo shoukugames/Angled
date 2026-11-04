@@ -53,8 +53,9 @@ Maintainer: Shouku Games <info@shoukugames.org>
 Homepage: https://shoukugames.org/
 Description: Angled v${VERSION} - strike each bubble at the spot written inside it
  A physics bubble-popping game about angles and trick shots by Shouku Games
- (created by Shawn Rapaz and Claude Code). Bank shots off the walls flip the
- angle. 100 levels, 99-second timer, VS CPU battle, top-10 scoreboard,
+ (created by Shawn Rapaz and Claude Code). Use off-centre hits and wall bank
+ shots to strike each bubble at the right spot. 100 levels, 99-second timer,
+ VS CPU battle, top-10 scoreboard,
  English/Japanese, and a For Parents progress screen.
 CTL
 cat > "$PKG/DEBIAN/postinst" <<'SH'
