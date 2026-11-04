@@ -1,4 +1,4 @@
-# Angled — v0.1.2
+# Angled — v0.1.3
 
 **Strike each bubble at the spot written inside it!** / **かくどを あわせて ポン！**
 
@@ -10,7 +10,7 @@ touch the right spot.
 
 | | |
 |---|---|
-| **Version** | v0.1.2 |
+| **Version** | v0.1.3 |
 | **Build** | `20261104.<commit>` (exact id shown in the Credits screen) |
 | **Build date** | 2026-11-04 |
 | **Created by** | Shawn Rapaz and Claude Code |
@@ -23,8 +23,8 @@ touch the right spot.
 
 | Platform | File | How to run |
 |---|---|---|
-| Windows 10/11 (64-bit) | `dist/Angled-v0.1.2-win64.exe` | Double-click it. It's a single portable file with no installer. Windows SmartScreen may warn about an unsigned app: choose *More info → Run anyway*. |
-| Debian / Ubuntu / Mint (amd64) | `dist/angled_0.1.2_amd64.deb` | `sudo apt install ./angled_0.1.2_amd64.deb`, then start **Angled** from the menu, or run `angled`. Remove with `sudo apt remove angled`. |
+| Windows 10/11 (64-bit) | `dist/Angled-v0.1.3-win64.exe` | Double-click it. It's a single portable file with no installer. Windows SmartScreen may warn about an unsigned app: choose *More info → Run anyway*. |
+| Debian / Ubuntu / Mint (amd64) | `dist/angled_0.1.3_amd64.deb` | `sudo apt install ./angled_0.1.3_amd64.deb`, then start **Angled** from the menu, or run `angled`. Remove with `sudo apt remove angled`. |
 | From source (any OS) | this folder | `pip install pygame` then `python3 run.py` |
 
 ---
@@ -72,12 +72,17 @@ it will touch on the bubble and shows its angle (green = it will pop). From leve
 
 | Action | Keyboard | Mouse |
 |---|---|---|
-| Turn the arrow | ← → or A D (hold to turn faster) | point the mouse where you want to aim |
-| Turn by 1° | tap ← → | mouse wheel |
+| Turn the arrow 1° | press ← → or A D once (each press = exactly 1°) | mouse wheel (1° per notch) |
+| Turn the arrow quickly | hold ← → or A D: after 0.4 s it starts turning, and gets faster the longer you hold | point the mouse where you want to aim |
 | Turn by 5° | Shift + ← → | — |
 | Shoot | Space | left click |
 | Pause | Esc or P | — |
 | Fullscreen | F11 | — |
+
+**Precise aiming:** tap ← → to move exactly one degree per press. Hold the key to sweep: it
+repeats after 0.4 s, at about 11°/s, then about 28°/s after 1.2 s and about 65°/s after 2 s.
+After you turn with the keys or the wheel, small mouse movements are ignored (the mouse has to
+move about 16 px before it takes over aiming again), so a bumped mouse can't undo careful aiming.
 
 ### Scoring
 
@@ -178,8 +183,8 @@ python3 run.py                    # play from source
 python3 tools/gen_audio.py        # regenerate music + synthesized sound effects
 python3 tools/gen_icon.py         # regenerate assets/icon.png / icon.ico
 python3 tools/gen_levels.py       # regenerate + re-prove all levels (assets/levels.json)
-./build_linux.sh                  # -> dist/angled_0.1.2_amd64.deb
-./build_windows.sh                # -> dist/Angled-v0.1.2-win64.exe (via Wine)
+./build_linux.sh                  # -> dist/angled_0.1.3_amd64.deb
+./build_windows.sh                # -> dist/Angled-v0.1.3-win64.exe (via Wine)
 ```
 
 `build_windows.bat` builds the .exe natively on Windows.
@@ -219,7 +224,7 @@ tools/           asset generators and build helpers
 
 * **Created by:** Shawn Rapaz and Claude Code
 * **Studio:** Shouku Games — <https://shoukugames.org/> — info@shoukugames.org
-* **Version:** v0.1.2 (2026-11-04)
+* **Version:** v0.1.3 (2026-11-04)
 * **Pop sounds:** real bubble-wrap pops recorded by Joseph Sardin, [BigSoundBank](https://bigsoundbank.com/) #0462, CC0
 * **Music & other sound effects:** synthesized for this game (`tools/gen_audio.py`)
 * **Fonts:** DejaVu Sans Bold (Bitstream Vera / DejaVu license), Droid Sans Fallback (Apache 2.0)

@@ -119,7 +119,7 @@ class GameScene:
         elif e.type == pygame.KEYUP:
             f.rotate_key_up(e)
         elif e.type == pygame.MOUSEMOTION and self.state == "play":
-            f.aim_at(*e.pos)
+            f.mouse_aim(e.pos)
         elif e.type == pygame.MOUSEBUTTONDOWN:
             if self.state in ("celebrate", "ending", "over") and e.button == 1 and self.state_t > 2.0:
                 self.advance_from_overlay()

@@ -100,7 +100,7 @@ class BattleScene:
         elif self.paused:
             return
         elif e.type == pygame.MOUSEMOTION and self.state == "play":
-            f.aim_at(*e.pos)
+            f.mouse_aim(e.pos)
         elif e.type == pygame.MOUSEBUTTONDOWN:
             if self.state == "play" and e.button == 1:
                 f.fire()

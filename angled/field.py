@@ -16,6 +16,11 @@ LABEL_CHECK = 0.2       # seconds between label validity checks
 LABEL_BATCH = 12        # bubbles checked per tick
 LABEL_ALIVE = (0.0, 3.0, 6.0, 9.0)        # a label is kept while it works within this much descent
 LABEL_FUTURE = (0.0, 3.0, 6.0, 9.0, 12.0, 15.0)  # new labels: prefer ones that keep working longest
+# Arrow-key turning: one press = exactly 1 degree.  Holding the key repeats
+# after HOLD_DELAY and then speeds up in stages (seconds held -> seconds per degree).
+HOLD_DELAY = 0.40
+HOLD_STAGES = ((1.2, 0.09), (2.0, 0.035), (99.0, 0.015))
+MOUSE_DEADZONE = 16       # after a key turn, the mouse must move this far to take over aiming
 ROT_LEFT = (pygame.K_LEFT, pygame.K_a)
 ROT_RIGHT = (pygame.K_RIGHT, pygame.K_d)
 
@@ -71,6 +76,7 @@ class Field:
         self.rot_step = 1
         self.rot_timer = 0.0
         self.rot_held = 0.0
+        self.mouse_lock = None   # mouse position when the keys last turned the arrow
         # stats
         self.pops = 0
         self.misses = 0
@@ -131,11 +137,27 @@ class Field:
         if e.key in ROT_LEFT or e.key in ROT_RIGHT:
             d = 1 if e.key in ROT_LEFT else -1   # left = counter-clockwise
             step = 5 if (e.mod & pygame.KMOD_SHIFT) else 1
-            self.nudge_angle(d * step)
-            self.rot_dir, self.rot_step, self.rot_timer = d, step, 0.28
+            self.nudge_angle(d * step)           # a single press = exactly one step
+            self.rot_dir, self.rot_step, self.rot_timer = d, step, HOLD_DELAY
             self.rot_held = 0.0
+            self._lock_mouse()
             return True
         return False
+
+    def _lock_mouse(self):
+        try:
+            self.mouse_lock = pygame.mouse.get_pos()
+        except pygame.error:
+            self.mouse_lock = None
+
+    def mouse_aim(self, pos):
+        """Mouse aiming, ignoring small mouse movements right after the arrow
+        keys or wheel were used (so a nudged mouse can't undo careful aiming)."""
+        if self.mouse_lock is not None:
+            if math.hypot(pos[0] - self.mouse_lock[0], pos[1] - self.mouse_lock[1]) < MOUSE_DEADZONE:
+                return
+            self.mouse_lock = None
+        self.aim_at(*pos)
 
     def rotate_key_up(self, e):
         if e.key in ROT_LEFT or e.key in ROT_RIGHT:
@@ -147,6 +169,7 @@ class Field:
     def wheel(self, e):
         d = -e.y if getattr(e, "flipped", False) else e.y
         self.nudge_angle(1 if d > 0 else -1)
+        self._lock_mouse()
 
     # ------------------------------------------------------------ labels
     def launch_for(self, key, bubbles=None):
@@ -267,8 +290,10 @@ class Field:
             self.rot_held += dt
             if self.rot_timer <= 0:
                 self.nudge_angle(self.rot_dir * self.rot_step)
-                fast = self.rot_held > 0.8
-                self.rot_timer = (0.022 if fast else 0.05) if self.rot_step == 1 else 0.11
+                if self.rot_step == 1:
+                    self.rot_timer = next(dt_ for upto, dt_ in HOLD_STAGES if self.rot_held < upto)
+                else:
+                    self.rot_timer = 0.15
         else:
             self.rot_held = 0.0
         for b in self.grid.values():

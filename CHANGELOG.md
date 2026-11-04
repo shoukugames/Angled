@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.1.3 — 2026-11-04
+
+* Precise aiming: each press of ← → / A D turns the arrow exactly 1°. Holding the key starts
+  repeating after 0.4 s (was 0.28 s, so slightly long taps moved 2–3°) and speeds up the longer
+  you hold: about 11°/s, then 28°/s after 1.2 s, then 65°/s after 2 s.
+* Small mouse movements no longer override keyboard/wheel aiming. The mouse takes over again
+  after moving about 16 px.
+* README and the in-game control hints updated.
+
 ## v0.1.2 — 2026-11-04
 
 * Space is now the only fire key during play. ↑ / W and Enter no longer shoot (left click still does).
