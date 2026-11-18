@@ -3,7 +3,10 @@ import datetime as _dt
 import json
 import os
 
+from . import WEB
 from .config import data_dir
+
+_WEB_KEY = "angled/save.json"  # browser: localStorage key (files vanish with the page)
 
 DEFAULT = {
     "settings": {"lang": "en", "bgm": True, "difficulty": "normal", "name": "PLAYER"},
@@ -27,8 +30,15 @@ class Storage:
     # ------------------------------------------------------------ io
     def load(self):
         try:
-            with open(self.path, "r", encoding="utf-8") as f:
-                d = json.load(f)
+            if WEB:
+                import platform  # pygbag's bridge to the page
+                raw = platform.window.localStorage.getItem(_WEB_KEY)
+                if not raw:
+                    return
+                d = json.loads(str(raw))
+            else:
+                with open(self.path, "r", encoding="utf-8") as f:
+                    d = json.load(f)
             for k, v in DEFAULT.items():
                 if k not in d or not isinstance(d[k], type(v)):
                     d[k] = json.loads(json.dumps(v))
@@ -45,6 +55,13 @@ class Storage:
                 pass
 
     def save(self):
+        if WEB:
+            try:
+                import platform  # pygbag's bridge to the page
+                platform.window.localStorage.setItem(_WEB_KEY, json.dumps(self.data, ensure_ascii=False))
+            except Exception:
+                pass
+            return
         tmp = self.path + ".tmp"
         try:
             with open(tmp, "w", encoding="utf-8") as f:

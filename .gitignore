@@ -5,3 +5,6 @@ __pycache__/
 angled/build_info.py
 *.spec
 packaging/version_info.txt
+
+# pygbag working copies (tools/build_web.py)
+*-pygbag.*

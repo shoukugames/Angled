@@ -5,7 +5,7 @@ import traceback
 
 import pygame
 
-from . import i18n
+from . import WEB, i18n
 from .assets import Audio, Fonts
 from .config import APP_NAME, FPS, SCREEN_H, SCREEN_W, VERSION, data_dir, resource_path
 from .storage import Storage
@@ -41,6 +41,18 @@ class App:
         self.running = True
         self.t = 0.0
         self.scene = None
+        # Phones and tablets: the device keyboard (plus Enter) while a name is being typed (webkeys.py).
+        self.webkeys = None
+        if WEB:
+            from .webkeys import WebKeys, has_touch_screen
+            if has_touch_screen():
+                try:
+                    self.webkeys = WebKeys(keys=["Enter"], keyboard=True)
+                    self.webkeys.show(False)
+                except Exception:  # noqa: BLE001 - the default name still works without it
+                    self.webkeys = None
+        from . import scenes_menu
+        scenes_menu.WEBKEYS = self.webkeys
         from .scenes_menu import TitleScene
         self.switch(TitleScene(self))
 
@@ -68,27 +80,40 @@ class App:
                 self.scene.on_quit()
             except Exception:
                 pass
-        self.running = False
+        self.running = WEB  # in a browser there is nothing to quit to
 
     # ------------------------------------------------------------ loop
+    def frame(self):
+        dt = min(self.clock.tick(FPS) / 1000.0, 0.05)
+        self.t += dt
+        if self.webkeys:
+            self.webkeys.poll()
+        for e in pygame.event.get():
+            if e.type == pygame.QUIT:
+                self.quit()
+                break
+            if e.type == pygame.KEYDOWN and e.key == pygame.K_F11 and not WEB:
+                pygame.display.toggle_fullscreen()
+                continue
+            self.scene.handle(e)
+        if not self.running:
+            return
+        self.scene.update(dt)
+        self.scene.draw(self.screen)
+        pygame.display.flip()
+
     def run(self):
         while self.running:
-            dt = min(self.clock.tick(FPS) / 1000.0, 0.05)
-            self.t += dt
-            for e in pygame.event.get():
-                if e.type == pygame.QUIT:
-                    self.quit()
-                    break
-                if e.type == pygame.KEYDOWN and e.key == pygame.K_F11:
-                    pygame.display.toggle_fullscreen()
-                    continue
-                self.scene.handle(e)
-            if not self.running:
-                break
-            self.scene.update(dt)
-            self.scene.draw(self.screen)
-            pygame.display.flip()
+            self.frame()
         pygame.quit()
+
+    async def run_web(self):
+        """Browser main loop: hands control back to the page after every frame."""
+        import asyncio
+        while True:  # a web page has no "quit"; closing the tab ends the game
+            self.running = True
+            self.frame()
+            await asyncio.sleep(0)
 
 
 def main():

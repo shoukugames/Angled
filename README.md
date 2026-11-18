@@ -29,6 +29,22 @@ touch the right spot.
 
 ---
 
+## Play in the browser
+
+Angled also runs in a web browser, on computers, phones and tablets, with nothing to install:
+<https://shoukugames.org/play/angled/> (test page). With a mouse or on a touch screen, point
+or tap where to shoot. To change your name on a phone or tablet, choose Name and use the ⌨
+button beside the game to open the device keyboard. Settings and scores are saved in the browser.
+
+```bash
+python3 -m pip install pygame pygbag     # plus ffmpeg on PATH (or FFMPEG=/path/to/ffmpeg)
+python3 tools/build_web.py               # -> build/web/: upload the folder as-is
+```
+
+The build uses [pygbag](https://pygame-web.github.io/). The top-level `main.py` is the web entry
+point; the browser-only parts (including `angled/webkeys.py`) switch on only in the browser.
+The `.apk` file pygbag writes is its bundle of game files, not an Android app.
+
 ## How to play
 
 1. Read the number inside a bubble, for example **60°**. It's a spot on the bubble's

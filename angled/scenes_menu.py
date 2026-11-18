@@ -5,7 +5,9 @@ import random
 
 import pygame
 
-from . import i18n, ui
+from . import WEB, i18n, ui
+
+WEBKEYS = None   # set by App in the browser on touch screens: shown while a name is typed
 from .config import (APP_NAME, AUTHORS, BUILD, BUILD_DATE, CYAN, DIFFICULTIES, EMAIL, GREEN, GREY,
                      ORANGE, RED, SCREEN_H, SCREEN_W, STUDIO, URL, VERSION, WHITE, YELLOW)
 from .effects import Fireworks
@@ -31,6 +33,8 @@ class TextInput:
     def start(self, rect=None):
         self.active = True
         self.comp = ""
+        if WEBKEYS:
+            WEBKEYS.show(True)
         pygame.key.start_text_input()
         if rect is not None:
             try:
@@ -41,6 +45,8 @@ class TextInput:
     def stop(self):
         self.active = False
         self.comp = ""
+        if WEBKEYS:
+            WEBKEYS.show(False)
         pygame.key.stop_text_input()
 
     def handle(self, e):
@@ -123,7 +129,7 @@ class TitleScene:
             {"id": "bgm", "label": lambda: "%s:  %s" % (T("menu_bgm"), T("on") if app.audio.bgm_on else T("off"))},
             {"id": "parents", "label": lambda: T("menu_parents")},
             {"id": "credits", "label": lambda: T("menu_credits")},
-            {"id": "quit", "label": lambda: T("menu_quit")},
+            {"id": "quit", "label": lambda: T("menu_quit"), "show": lambda: not WEB},  # nothing to quit to in a browser
         ]
         self.menu = ui.Menu(items, 96, 212, spacing=44, size=25, width=540)
 
