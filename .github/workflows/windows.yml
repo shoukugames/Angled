@@ -38,6 +38,7 @@ jobs:
         run: |
           ROOT="$(cygpath -m "$PWD")"
           VERSION="$(python -c 'from angled.config import VERSION; print(VERSION)')"
+          mkdir -p packaging   # write_build_info.py writes packaging/version_info.txt (git-ignored)
           python tools/write_build_info.py
           [ -f assets/levels.json ] || python tools/gen_levels.py
           python -m PyInstaller --noconfirm --clean --onefile --windowed --name "Angled-v$VERSION-win64" \
