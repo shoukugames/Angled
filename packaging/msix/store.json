@@ -1,0 +1,12 @@
+{
+ "_note": "Replace identity_name, publisher and publisher_display_name with the values from Partner Center (Product management -> Product identity) before uploading to the Microsoft Store.",
+ "identity_name": "ShoukuGames.Angled",
+ "publisher": "CN=ShoukuGamesPlaceholder",
+ "publisher_display_name": "Shouku Games",
+ "display_name": "Angled",
+ "description": "A physics bubble-popping game about angles and trick shots. Turn the arrow and strike each bubble at the exact spot written inside it.",
+ "file_name": "Angled",
+ "exe_name": "Angled.exe",
+ "alias": "shouku-angled.exe",
+ "device_capabilities": []
+}
